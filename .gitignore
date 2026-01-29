@@ -1,0 +1,10 @@
+# ignore trained models
+*.pkl
+
+# python cache
+__pycache__/
+*.pyc
+
+# mac junk
+.DS_Store
+
