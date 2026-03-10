@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+
+<title>SignSetu - AI Sign Language Translator</title>
+
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+
+</head>
+
+<body>
+
+<div class="container">
+
+<h1>🤟 SignSetu</h1>
+
+<p>AI Powered Sign Language Translator</p>
+
+<div class="camera-box">
+
+<img src="{{ url_for('video') }}" width="700">
+
+</div>
+
+<h2>Sentence</h2>
+
+<div id="sentenceBox">Waiting for signs...</div>
+
+<div class="buttons">
+
+<button onclick="speakSentence()">🔊 Speak Sentence</button>
+
+<button onclick="clearSentence()">🧹 Clear</button>
+
+</div>
+
+<div class="info">
+
+<p>Show a sign in front of the camera.</p>
+
+</div>
+
+</div>
+
+
+<script>
+
+let lastWord=""
+
+function updateSentence(){
+
+fetch('/sentence')
+
+.then(response=>response.json())
+
+.then(data=>{
+
+let text=data.sentence
+
+document.getElementById("sentenceBox").innerText=text
+
+let words=text.split(" ")
+
+let newWord=words[words.length-1]
+
+if(newWord && newWord!==lastWord){
+
+speakWord(newWord)
+
+lastWord=newWord
+
+}
+
+})
+
+}
+
+setInterval(updateSentence,1000)
+
+function speakWord(word){
+
+let speech=new SpeechSynthesisUtterance(word)
+
+speech.lang="en-US"
+
+speechSynthesis.speak(speech)
+
+}
+
+function speakSentence(){
+
+let text=document.getElementById("sentenceBox").innerText
+
+let speech=new SpeechSynthesisUtterance(text)
+
+speech.lang="en-US"
+
+speechSynthesis.speak(speech)
+
+}
+
+function clearSentence(){
+
+fetch('/clear')
+
+lastWord=""
+
+}
+
+document.addEventListener("keydown",function(e){
+
+if(e.key==="s"){
+
+speakSentence()
+
+}
+
+if(e.key==="c"){
+
+clearSentence()
+
+}
+
+})
+
+</script>
+
+</body>
+
+</html>

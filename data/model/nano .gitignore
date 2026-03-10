@@ -1,9 +1,0 @@
-# trained models
-*.pkl
-
-# python cache
-__pycache__/
-*.pyc
-
-# mac
-.DS_Store
