@@ -11,21 +11,60 @@
 
 <body>
 
-<div class="container">
+<nav class="navbar">
 
-<h1>🤟 SignSetu</h1>
+<div class="logo">🤟 SignSetu</div>
 
-<p>AI Powered Sign Language Translator</p>
+<div class="menu">
 
-<div class="camera-box">
+<div class="dropdown">
 
-<img src="{{ url_for('video') }}" width="700">
+<button class="menu-btn">Menu ▾</button>
+
+<div class="dropdown-content">
+
+<a href="#">My Profile</a>
+<a href="#">Subscription Plans</a>
+<a href="#">Account Settings</a>
+<a href="#">Theme</a>
+<a href="#">Skills & Development</a>
+<a href="#">Support & Help Center</a>
+<a href="#">About Us</a>
+<a href="#">Logout</a>
 
 </div>
 
-<h2>Sentence</h2>
+</div>
+
+</div>
+
+</nav>
+
+
+<div class="main-container">
+
+<h1>AI Sign Language Translator</h1>
+
+<p class="subtitle">
+Translate sign language into text and speech in real-time
+</p>
+
+
+<div class="translator-container">
+
+<div class="camera-section">
+
+<img src="{{ url_for('video') }}" class="camera">
+
+</div>
+
+
+<div class="output-section">
+
+<h2>Detected Sentence</h2>
 
 <div id="sentenceBox">Waiting for signs...</div>
+
 
 <div class="buttons">
 
@@ -35,13 +74,12 @@
 
 </div>
 
-<div class="info">
-
-<p>Show a sign in front of the camera.</p>
-
 </div>
 
 </div>
+
+</div>
+
 
 
 <script>
@@ -78,6 +116,7 @@ lastWord=newWord
 
 setInterval(updateSentence,1000)
 
+
 function speakWord(word){
 
 let speech=new SpeechSynthesisUtterance(word)
@@ -87,6 +126,7 @@ speech.lang="en-US"
 speechSynthesis.speak(speech)
 
 }
+
 
 function speakSentence(){
 
@@ -100,6 +140,7 @@ speechSynthesis.speak(speech)
 
 }
 
+
 function clearSentence(){
 
 fetch('/clear')
@@ -107,6 +148,7 @@ fetch('/clear')
 lastWord=""
 
 }
+
 
 document.addEventListener("keydown",function(e){
 

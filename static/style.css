@@ -1,83 +1,166 @@
 body{
 
 font-family: Arial;
-background:#0f172a;
-color:white;
-text-align:center;
+background:#F5F5DC;
 margin:0;
 padding:0;
 
 }
 
-.container{
+/* NAVBAR */
 
-margin-top:40px;
+.navbar{
+
+display:flex;
+justify-content:space-between;
+align-items:center;
+background:#4F3E34;
+color:white;
+padding:15px 40px;
 
 }
 
-h1{
+.logo{
 
-font-size:48px;
-color:#38bdf8;
+font-size:24px;
+font-weight:bold;
 
 }
 
-p{
+.menu-btn{
+
+background:#C6AC8F;
+border:none;
+padding:10px 15px;
+cursor:pointer;
+border-radius:6px;
+font-weight:bold;
+
+}
+
+/* Dropdown */
+
+.dropdown{
+
+position:relative;
+display:inline-block;
+
+}
+
+.dropdown-content{
+
+display:none;
+position:absolute;
+background:#DED1B6;
+min-width:200px;
+right:0;
+border-radius:6px;
+overflow:hidden;
+
+}
+
+.dropdown-content a{
+
+color:black;
+padding:10px;
+display:block;
+text-decoration:none;
+
+}
+
+.dropdown-content a:hover{
+
+background:#C6AC8F;
+
+}
+
+.dropdown:hover .dropdown-content{
+
+display:block;
+
+}
+
+/* MAIN */
+
+.main-container{
+
+text-align:center;
+padding:40px;
+
+}
+
+.subtitle{
 
 font-size:18px;
+color:#4F3E34;
 
 }
 
-.camera-box{
+/* TRANSLATOR */
 
-margin-top:30px;
+.translator-container{
+
+display:flex;
+justify-content:center;
+gap:40px;
+margin-top:40px;
+flex-wrap:wrap;
 
 }
 
-img{
+/* CAMERA */
 
+.camera{
+
+width:600px;
 border-radius:15px;
-border:4px solid #38bdf8;
+border:4px solid #4F3E34;
 
 }
 
-.info{
+/* OUTPUT */
 
-margin-top:20px;
-color:#cbd5f5;
+.output-section{
+
+background:#DED1B6;
+padding:30px;
+border-radius:12px;
+width:350px;
 
 }
 
 #sentenceBox{
 
 margin-top:20px;
-font-size:26px;
-color:#22c55e;
+font-size:24px;
 font-weight:bold;
+color:#4F3E34;
 
 }
 
+/* BUTTONS */
+
 .buttons{
 
-margin-top:20px;
+margin-top:30px;
 
 }
 
 button{
 
-padding:10px 20px;
+padding:12px 20px;
 margin:10px;
-font-size:18px;
 border:none;
 border-radius:8px;
-background:#38bdf8;
-color:black;
+font-size:16px;
+background:#C6AC8F;
 cursor:pointer;
+font-weight:bold;
 
 }
 
 button:hover{
 
-background:#0ea5e9;
+background:#b89a79;
 
 }
