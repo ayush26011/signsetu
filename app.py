@@ -1,4 +1,5 @@
 from flask import Flask, render_template, Response, jsonify, request
+from flask_cors import CORS
 import cv2
 import mediapipe as mp
 import numpy as np
@@ -6,7 +7,7 @@ import joblib
 from collections import Counter
 
 app = Flask(__name__)
-
+CORS(app)
 # Load model
 model = joblib.load("sign_model.pkl")
 le = joblib.load("label_encoder.pkl")
