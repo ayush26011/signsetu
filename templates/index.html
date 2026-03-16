@@ -7,14 +7,16 @@
 
 <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
+
 </head>
 
 <body>
 
 <nav class="navbar">
-
 <div class="logo">🤟 SignSetu</div>
-
 </nav>
 
 
@@ -32,7 +34,7 @@ Translate sign language into text and speech in real-time
 <div class="camera-section">
 
 <video id="camera" autoplay playsinline class="camera"></video>
-<canvas id="canvas" style="display:none;"></canvas>
+<canvas id="canvas"></canvas>
 
 </div>
 
@@ -43,11 +45,8 @@ Translate sign language into text and speech in real-time
 
 <div id="sentenceBox">Waiting for signs...</div>
 
-
 <div class="buttons">
-
 <button onclick="speakSentence()">🔊 Speak</button>
-
 </div>
 
 </div>
@@ -55,60 +54,163 @@ Translate sign language into text and speech in real-time
 </div>
 
 </div>
-
 
 
 <script>
 
 const video = document.getElementById("camera")
 const canvas = document.getElementById("canvas")
+const ctx = canvas.getContext("2d")
 const sentenceBox = document.getElementById("sentenceBox")
 
 navigator.mediaDevices.getUserMedia({video:true})
 .then(stream=>{
-    video.srcObject = stream
+video.srcObject = stream
+})
+
+/* MEDIAPIPE SETUP */
+
+const hands = new Hands({
+locateFile:(file)=>{
+return `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
+}
+})
+
+hands.setOptions({
+maxNumHands:1,
+minDetectionConfidence:0.7,
+minTrackingConfidence:0.7
+})
+
+let buffer=[]
+let sentence=[]
+let lastWord=""
+const BUFFER_SIZE=8
+
+
+hands.onResults(results=>{
+
+canvas.width = video.videoWidth
+canvas.height = video.videoHeight
+
+ctx.save()
+ctx.clearRect(0,0,canvas.width,canvas.height)
+
+ctx.drawImage(video,0,0,canvas.width,canvas.height)
+
+if(results.multiHandLandmarks){
+
+for(const landmarks of results.multiHandLandmarks){
+
+drawConnectors(ctx,landmarks,HAND_CONNECTIONS,
+{color:'#00FF00',lineWidth:4})
+
+drawLandmarks(ctx,landmarks,
+{color:'#FF0000',lineWidth:2})
+
+captureFrame()
+
+}
+
+}
+
+ctx.restore()
+
 })
 
 
+/* FRAME SEND TO BACKEND */
+
 function captureFrame(){
 
-    canvas.width = video.videoWidth
-    canvas.height = video.videoHeight
+const tempCanvas=document.createElement("canvas")
 
-    const ctx = canvas.getContext("2d")
+tempCanvas.width=video.videoWidth
+tempCanvas.height=video.videoHeight
 
-    ctx.drawImage(video,0,0)
+const tempCtx=tempCanvas.getContext("2d")
 
-    canvas.toBlob(sendFrame,"image/jpeg")
+tempCtx.drawImage(video,0,0)
+
+tempCanvas.toBlob(blob=>{
+
+let formData=new FormData()
+
+formData.append("image",blob)
+
+fetch("/predict",{
+method:"POST",
+body:formData
+})
+.then(res=>res.json())
+.then(data=>{
+handlePrediction(data.prediction)
+})
+
+},"image/jpeg")
+
+}
+
+
+/* SMOOTH PREDICTION */
+
+function handlePrediction(word){
+
+if(word==="No Hand" || word==="Uncertain") return
+
+buffer.push(word)
+
+if(buffer.length>BUFFER_SIZE) buffer.shift()
+
+let counts={}
+
+buffer.forEach(w=>{
+counts[w]=(counts[w]||0)+1
+})
+
+let best=Object.keys(counts).reduce((a,b)=>
+counts[a]>counts[b]?a:b)
+
+addToSentence(best)
 
 }
 
 
-function sendFrame(blob){
+/* SENTENCE BUILD */
 
-    let formData = new FormData()
+function addToSentence(word){
 
-    formData.append("image",blob)
+if(word===lastWord) return
 
-    fetch("/predict",{
-        method:"POST",
-        body:formData
-    })
-    .then(res=>res.json())
-    .then(data=>{
+sentence.push(word)
 
-        sentenceBox.innerText = data.prediction
+if(sentence.length>6) sentence.shift()
 
-    })
+lastWord=word
+
+sentenceBox.innerText=sentence.join(" ")
+
+speakWord(word)
 
 }
 
-setInterval(captureFrame,700)
+
+/* AUTO SPEAK */
+
+function speakWord(word){
+
+let speech=new SpeechSynthesisUtterance(word)
+
+speech.lang="en-US"
+
+speechSynthesis.speak(speech)
+
+}
 
 
 function speakSentence(){
 
-let text=document.getElementById("sentenceBox").innerText
+let text=sentenceBox.innerText
 
 let speech=new SpeechSynthesisUtterance(text)
 
@@ -117,6 +219,19 @@ speech.lang="en-US"
 speechSynthesis.speak(speech)
 
 }
+
+
+/* CAMERA LOOP */
+
+const camera=new Camera(video,{
+onFrame:async()=>{
+await hands.send({image:video})
+},
+width:640,
+height:480
+})
+
+camera.start()
 
 </script>
 
