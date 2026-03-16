@@ -1,276 +1,173 @@
 <!DOCTYPE html>
 <html>
+
 <head>
-  <title>SignSetu - AI Sign Language Translator</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 
-  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
+<title>SignSetu - AI Sign Language Translator</title>
 
-  <style>
-    .camera-wrapper {
-      position: relative;
-      width: 600px;
-      margin: 0 auto;
-    }
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 
-    #camera {
-      display: none;
-    }
-
-    #canvas {
-      width: 600px;
-      height: auto;
-      border-radius: 15px;
-      border: 4px solid #4F3E34;
-      background: #000;
-      display: block;
-    }
-
-    #statusText {
-      margin-top: 12px;
-      font-size: 16px;
-      color: #4F3E34;
-      font-weight: bold;
-    }
-  </style>
 </head>
 
 <body>
-  <nav class="navbar">
-    <div class="logo">🤟 SignSetu</div>
-  </nav>
 
-  <div class="main-container">
-    <h1>AI Sign Language Translator</h1>
-    <p class="subtitle">
-      Translate sign language into text and speech in real-time
-    </p>
+<nav class="navbar">
 
-    <div class="translator-container">
-      <div class="camera-section">
-        <div class="camera-wrapper">
-          <video id="camera" autoplay playsinline muted></video>
-          <canvas id="canvas"></canvas>
-        </div>
-        <div id="statusText">Starting camera...</div>
-      </div>
+<div class="logo">🤟 SignSetu</div>
 
-      <div class="output-section">
-        <h2>Detected Sentence</h2>
-        <div id="sentenceBox">Waiting for signs...</div>
+<div class="menu">
 
-        <div class="buttons">
-          <button onclick="speakSentence()">🔊 Speak Sentence</button>
-          <button onclick="clearSentence()">🧹 Clear</button>
-        </div>
-      </div>
-    </div>
-  </div>
+<div class="dropdown">
 
-  <script>
-    const video = document.getElementById("camera");
-    const canvas = document.getElementById("canvas");
-    const ctx = canvas.getContext("2d");
-    const sentenceBox = document.getElementById("sentenceBox");
-    const statusText = document.getElementById("statusText");
+<button class="menu-btn">Menu ▾</button>
 
-    let buffer = [];
-    let lastWord = "";
-    let lastSendTime = 0;
-    let speaking = false;
+<div class="dropdown-content">
 
-    const BUFFER_SIZE = 6;
-    const SEND_INTERVAL = 500;
+<a href="#">My Profile</a>
+<a href="#">Subscription Plans</a>
+<a href="#">Account Settings</a>
+<a href="#">Theme</a>
+<a href="#">Skills & Development</a>
+<a href="#">Support & Help Center</a>
+<a href="#">About Us</a>
+<a href="#">Logout</a>
 
-    async function setupCamera() {
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: "user", width: 640, height: 480 },
-          audio: false
-        });
-        video.srcObject = stream;
+</div>
 
-        await new Promise((resolve) => {
-          video.onloadedmetadata = () => resolve();
-        });
+</div>
 
-        video.play();
-        statusText.innerText = "Camera started. Show your hand sign.";
-      } catch (err) {
-        console.error("Camera error:", err);
-        statusText.innerText = "Camera permission denied or unavailable.";
-      }
-    }
+</div>
 
-    const hands = new Hands({
-      locateFile: (file) =>
-        `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
-    });
+</nav>
 
-    hands.setOptions({
-      maxNumHands: 1,
-      modelComplexity: 1,
-      minDetectionConfidence: 0.7,
-      minTrackingConfidence: 0.7
-    });
 
-    hands.onResults((results) => {
-      if (!video.videoWidth || !video.videoHeight) return;
+<div class="main-container">
 
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
+<h1>AI Sign Language Translator</h1>
 
-      ctx.save();
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
+<p class="subtitle">
+Translate sign language into text and speech in real-time
+</p>
 
-      // draw mirrored video
-      ctx.translate(canvas.width, 0);
-      ctx.scale(-1, 1);
-      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-      ctx.restore();
 
-      if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
-        for (const landmarks of results.multiHandLandmarks) {
-          drawConnectors(ctx, landmarks, HAND_CONNECTIONS, {
-            color: "#00FF00",
-            lineWidth: 3
-          });
-          drawLandmarks(ctx, landmarks, {
-            color: "#FF0000",
-            lineWidth: 2
-          });
-        }
+<div class="translator-container">
 
-        const now = Date.now();
-        if (now - lastSendTime > SEND_INTERVAL) {
-          captureFrame();
-          lastSendTime = now;
-        }
-      }
-    });
+<div class="camera-section">
 
-    function captureFrame() {
-      if (!video.videoWidth || !video.videoHeight) return;
+<img src="{{ url_for('video') }}" class="camera">
 
-      const tempCanvas = document.createElement("canvas");
-      tempCanvas.width = video.videoWidth;
-      tempCanvas.height = video.videoHeight;
-      const tempCtx = tempCanvas.getContext("2d");
+</div>
 
-      // mirrored frame for backend
-      tempCtx.translate(tempCanvas.width, 0);
-      tempCtx.scale(-1, 1);
-      tempCtx.drawImage(video, 0, 0, tempCanvas.width, tempCanvas.height);
 
-      tempCanvas.toBlob(async (blob) => {
-        if (!blob) return;
+<div class="output-section">
 
-        const formData = new FormData();
-        formData.append("image", blob, "frame.jpg");
+<h2>Detected Sentence</h2>
 
-        try {
-          const res = await fetch("/predict", {
-            method: "POST",
-            body: formData
-          });
+<div id="sentenceBox">Waiting for signs...</div>
 
-          const data = await res.json();
 
-          if (data.prediction === "No Hand") {
-            statusText.innerText = "Hand not detected.";
-            return;
-          }
+<div class="buttons">
 
-          if (
-            data.prediction === "Uncertain" ||
-            data.prediction === "Error" ||
-            data.prediction === "Decode Error"
-          ) {
-            statusText.innerText = `Status: ${data.prediction}`;
-            return;
-          }
+<button onclick="speakSentence()">🔊 Speak Sentence</button>
 
-          statusText.innerText = `Prediction: ${data.prediction} | Confidence: ${Math.round((data.confidence || 0) * 100)}%`;
-          handlePrediction(data.prediction, data.sentence);
+<button onclick="clearSentence()">🧹 Clear</button>
 
-        } catch (err) {
-          console.error("Fetch error:", err);
-          statusText.innerText = "Prediction request failed.";
-        }
-      }, "image/jpeg", 0.8);
-    }
+</div>
 
-    function handlePrediction(word, fullSentence) {
-      if (!word || word === "No Hand" || word === "Uncertain") return;
+</div>
 
-      buffer.push(word);
-      if (buffer.length > BUFFER_SIZE) buffer.shift();
+</div>
 
-      const counts = {};
-      buffer.forEach((w) => {
-        counts[w] = (counts[w] || 0) + 1;
-      });
+</div>
 
-      const best = Object.keys(counts).reduce((a, b) =>
-        counts[a] > counts[b] ? a : b
-      );
 
-      if (best !== lastWord) {
-        lastWord = best;
-        sentenceBox.innerText = fullSentence || best;
-        speakWord(best);
-      }
-    }
 
-    function speakWord(word) {
-      if (!word || speaking) return;
-      speaking = true;
-      const speech = new SpeechSynthesisUtterance(word);
-      speech.lang = "en-US";
-      speech.onend = () => {
-        speaking = false;
-      };
-      speechSynthesis.speak(speech);
-    }
+<script>
 
-    function speakSentence() {
-      const text = sentenceBox.innerText;
-      if (!text || text === "Waiting for signs...") return;
-      const speech = new SpeechSynthesisUtterance(text);
-      speech.lang = "en-US";
-      speechSynthesis.speak(speech);
-    }
+let lastWord=""
 
-    async function clearSentence() {
-      try {
-        await fetch("/clear");
-        sentenceBox.innerText = "Waiting for signs...";
-        lastWord = "";
-        buffer = [];
-        statusText.innerText = "Sentence cleared.";
-      } catch (err) {
-        console.error("Clear error:", err);
-      }
-    }
+function updateSentence(){
 
-    const camera = new Camera(video, {
-      onFrame: async () => {
-        if (video.readyState >= 2) {
-          await hands.send({ image: video });
-        }
-      },
-      width: 640,
-      height: 480
-    });
+fetch('/sentence')
 
-    async function startApp() {
-      await setupCamera();
-      camera.start();
-    }
+.then(response=>response.json())
 
-    startApp();
-  </script>
+.then(data=>{
+
+let text=data.sentence
+
+document.getElementById("sentenceBox").innerText=text
+
+let words=text.split(" ")
+
+let newWord=words[words.length-1]
+
+if(newWord && newWord!==lastWord){
+
+speakWord(newWord)
+
+lastWord=newWord
+
+}
+
+})
+
+}
+
+setInterval(updateSentence,1000)
+
+
+function speakWord(word){
+
+let speech=new SpeechSynthesisUtterance(word)
+
+speech.lang="en-US"
+
+speechSynthesis.speak(speech)
+
+}
+
+
+function speakSentence(){
+
+let text=document.getElementById("sentenceBox").innerText
+
+let speech=new SpeechSynthesisUtterance(text)
+
+speech.lang="en-US"
+
+speechSynthesis.speak(speech)
+
+}
+
+
+function clearSentence(){
+
+fetch('/clear')
+
+lastWord=""
+
+}
+
+
+document.addEventListener("keydown",function(e){
+
+if(e.key==="s"){
+
+speakSentence()
+
+}
+
+if(e.key==="c"){
+
+clearSentence()
+
+}
+
+})
+
+</script>
+
 </body>
+
 </html>
