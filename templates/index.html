@@ -19,7 +19,6 @@
 <div class="logo">🤟 SignSetu</div>
 </nav>
 
-
 <div class="main-container">
 
 <h1>AI Sign Language Translator</h1>
@@ -28,16 +27,12 @@
 Translate sign language into text and speech in real-time
 </p>
 
-
 <div class="translator-container">
 
 <div class="camera-section">
-
 <video id="camera" autoplay playsinline class="camera"></video>
 <canvas id="canvas"></canvas>
-
 </div>
-
 
 <div class="output-section">
 
@@ -55,22 +50,19 @@ Translate sign language into text and speech in real-time
 
 </div>
 
-
 <script>
 
-const video = document.getElementById("camera")
-const canvas = document.getElementById("canvas")
-const ctx = canvas.getContext("2d")
-const sentenceBox = document.getElementById("sentenceBox")
+const video=document.getElementById("camera")
+const canvas=document.getElementById("canvas")
+const ctx=canvas.getContext("2d")
+const sentenceBox=document.getElementById("sentenceBox")
 
 navigator.mediaDevices.getUserMedia({video:true})
 .then(stream=>{
-video.srcObject = stream
+video.srcObject=stream
 })
 
-/* MEDIAPIPE SETUP */
-
-const hands = new Hands({
+const hands=new Hands({
 locateFile:(file)=>{
 return `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
 }
@@ -85,18 +77,18 @@ minTrackingConfidence:0.7
 let buffer=[]
 let sentence=[]
 let lastWord=""
+let sending=false
+
 const BUFFER_SIZE=8
 
 
 hands.onResults(results=>{
 
-canvas.width = video.videoWidth
-canvas.height = video.videoHeight
+canvas.width=video.videoWidth
+canvas.height=video.videoHeight
 
-ctx.save()
 ctx.clearRect(0,0,canvas.width,canvas.height)
-
-ctx.drawImage(video,0,0,canvas.width,canvas.height)
+ctx.drawImage(video,0,0)
 
 if(results.multiHandLandmarks){
 
@@ -108,23 +100,22 @@ drawConnectors(ctx,landmarks,HAND_CONNECTIONS,
 drawLandmarks(ctx,landmarks,
 {color:'#FF0000',lineWidth:2})
 
+if(!sending){
 captureFrame()
-
 }
 
 }
 
-ctx.restore()
+}
 
 })
 
 
-/* FRAME SEND TO BACKEND */
-
 function captureFrame(){
 
-const tempCanvas=document.createElement("canvas")
+sending=true
 
+const tempCanvas=document.createElement("canvas")
 tempCanvas.width=video.videoWidth
 tempCanvas.height=video.videoHeight
 
@@ -135,7 +126,6 @@ tempCtx.drawImage(video,0,0)
 tempCanvas.toBlob(blob=>{
 
 let formData=new FormData()
-
 formData.append("image",blob)
 
 fetch("/predict",{
@@ -144,7 +134,13 @@ body:formData
 })
 .then(res=>res.json())
 .then(data=>{
+
 handlePrediction(data.prediction)
+
+setTimeout(()=>{
+sending=false
+},800)
+
 })
 
 },"image/jpeg")
@@ -152,15 +148,14 @@ handlePrediction(data.prediction)
 }
 
 
-/* SMOOTH PREDICTION */
-
 function handlePrediction(word){
 
 if(word==="No Hand" || word==="Uncertain") return
 
 buffer.push(word)
 
-if(buffer.length>BUFFER_SIZE) buffer.shift()
+if(buffer.length>BUFFER_SIZE)
+buffer.shift()
 
 let counts={}
 
@@ -176,15 +171,14 @@ addToSentence(best)
 }
 
 
-/* SENTENCE BUILD */
-
 function addToSentence(word){
 
 if(word===lastWord) return
 
 sentence.push(word)
 
-if(sentence.length>6) sentence.shift()
+if(sentence.length>6)
+sentence.shift()
 
 lastWord=word
 
@@ -195,12 +189,9 @@ speakWord(word)
 }
 
 
-/* AUTO SPEAK */
-
 function speakWord(word){
 
 let speech=new SpeechSynthesisUtterance(word)
-
 speech.lang="en-US"
 
 speechSynthesis.speak(speech)
@@ -220,8 +211,6 @@ speechSynthesis.speak(speech)
 
 }
 
-
-/* CAMERA LOOP */
 
 const camera=new Camera(video,{
 onFrame:async()=>{
