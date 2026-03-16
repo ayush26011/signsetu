@@ -13,17 +13,19 @@ model = joblib.load("sign_model.pkl")
 le = joblib.load("label_encoder.pkl")
 
 EXPECTED_FEATURES = model.n_features_in_
-
 CONFIDENCE_THRESHOLD = 0.80
 
-# Mediapipe
+
+# Mediapipe Setup
 mp_hands = mp.solutions.hands
+
 hands = mp_hands.Hands(
     static_image_mode=False,
     max_num_hands=1,
     min_detection_confidence=0.75,
     min_tracking_confidence=0.75
 )
+
 
 @app.route('/')
 def home():
@@ -34,60 +36,79 @@ def home():
 @app.route('/predict', methods=['POST'])
 def predict():
 
-    if 'image' not in request.files:
-        return jsonify({"error": "No image provided"}), 400
+    try:
 
-    file = request.files['image']
-    img_bytes = file.read()
+        if 'image' not in request.files:
+            return jsonify({"prediction": "No Image", "confidence": 0})
 
-    np_arr = np.frombuffer(img_bytes, np.uint8)
-    frame = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
+        file = request.files['image']
 
-    frame = cv2.flip(frame, 1)
+        img_bytes = file.read()
 
-    rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-    result = hands.process(rgb)
+        np_arr = np.frombuffer(img_bytes, np.uint8)
 
-    prediction = "No Hand"
-    confidence = 0
+        frame = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
 
-    if result.multi_hand_landmarks:
+        if frame is None:
+            return jsonify({"prediction": "Decode Error", "confidence": 0})
 
-        hand = result.multi_hand_landmarks[0]
+        frame = cv2.flip(frame, 1)
 
-        features = []
-        base = hand.landmark[0]
+        rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
-        for lm in hand.landmark[:21]:
-            features.append(lm.x - base.x)
-            features.append(lm.y - base.y)
+        result = hands.process(rgb)
 
-        features = np.array(features, dtype=np.float32)
+        prediction = "No Hand"
+        confidence = 0
 
-        if features.shape[0] < EXPECTED_FEATURES:
-            features = np.pad(
-                features,
-                (0, EXPECTED_FEATURES - features.shape[0]),
-                mode="constant"
-            )
+        if result.multi_hand_landmarks:
 
-        features = features.reshape(1, -1)
+            hand = result.multi_hand_landmarks[0]
 
-        probs = model.predict_proba(features)
+            features = []
 
-        confidence = np.max(probs)
+            base = hand.landmark[0]
 
-        pred = np.argmax(probs)
+            for lm in hand.landmark[:21]:
+                features.append(lm.x - base.x)
+                features.append(lm.y - base.y)
 
-        prediction = le.inverse_transform([pred])[0]
+            features = np.array(features, dtype=np.float32)
 
-        if confidence < CONFIDENCE_THRESHOLD:
-            prediction = "Uncertain"
+            # Feature padding safety
+            if features.shape[0] < EXPECTED_FEATURES:
+                features = np.pad(
+                    features,
+                    (0, EXPECTED_FEATURES - features.shape[0]),
+                    mode="constant"
+                )
 
-    return jsonify({
-        "prediction": prediction,
-        "confidence": float(confidence)
-    })
+            features = features.reshape(1, -1)
+
+            probs = model.predict_proba(features)
+
+            confidence = float(np.max(probs))
+
+            pred = int(np.argmax(probs))
+
+            prediction = le.inverse_transform([pred])[0]
+
+            if confidence < CONFIDENCE_THRESHOLD:
+                prediction = "Uncertain"
+
+        return jsonify({
+            "prediction": prediction,
+            "confidence": confidence
+        })
+
+    except Exception as e:
+
+        print("Prediction error:", str(e))
+
+        return jsonify({
+            "prediction": "Error",
+            "confidence": 0
+        })
 
 
 if __name__ == "__main__":
