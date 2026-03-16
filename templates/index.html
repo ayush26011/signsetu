@@ -15,29 +15,6 @@
 
 <div class="logo">🤟 SignSetu</div>
 
-<div class="menu">
-
-<div class="dropdown">
-
-<button class="menu-btn">Menu ▾</button>
-
-<div class="dropdown-content">
-
-<a href="#">My Profile</a>
-<a href="#">Subscription Plans</a>
-<a href="#">Account Settings</a>
-<a href="#">Theme</a>
-<a href="#">Skills & Development</a>
-<a href="#">Support & Help Center</a>
-<a href="#">About Us</a>
-<a href="#">Logout</a>
-
-</div>
-
-</div>
-
-</div>
-
 </nav>
 
 
@@ -54,23 +31,22 @@ Translate sign language into text and speech in real-time
 
 <div class="camera-section">
 
-<img src="{{ url_for('video') }}" class="camera">
+<video id="camera" autoplay playsinline class="camera"></video>
+<canvas id="canvas" style="display:none;"></canvas>
 
 </div>
 
 
 <div class="output-section">
 
-<h2>Detected Sentence</h2>
+<h2>Detected Sign</h2>
 
 <div id="sentenceBox">Waiting for signs...</div>
 
 
 <div class="buttons">
 
-<button onclick="speakSentence()">🔊 Speak Sentence</button>
-
-<button onclick="clearSentence()">🧹 Clear</button>
+<button onclick="speakSentence()">🔊 Speak</button>
 
 </div>
 
@@ -84,48 +60,50 @@ Translate sign language into text and speech in real-time
 
 <script>
 
-let lastWord=""
+const video = document.getElementById("camera")
+const canvas = document.getElementById("canvas")
+const sentenceBox = document.getElementById("sentenceBox")
 
-function updateSentence(){
-
-fetch('/sentence')
-
-.then(response=>response.json())
-
-.then(data=>{
-
-let text=data.sentence
-
-document.getElementById("sentenceBox").innerText=text
-
-let words=text.split(" ")
-
-let newWord=words[words.length-1]
-
-if(newWord && newWord!==lastWord){
-
-speakWord(newWord)
-
-lastWord=newWord
-
-}
-
+navigator.mediaDevices.getUserMedia({video:true})
+.then(stream=>{
+    video.srcObject = stream
 })
 
+
+function captureFrame(){
+
+    canvas.width = video.videoWidth
+    canvas.height = video.videoHeight
+
+    const ctx = canvas.getContext("2d")
+
+    ctx.drawImage(video,0,0)
+
+    canvas.toBlob(sendFrame,"image/jpeg")
+
 }
 
-setInterval(updateSentence,1000)
 
+function sendFrame(blob){
 
-function speakWord(word){
+    let formData = new FormData()
 
-let speech=new SpeechSynthesisUtterance(word)
+    formData.append("image",blob)
 
-speech.lang="en-US"
+    fetch("/predict",{
+        method:"POST",
+        body:formData
+    })
+    .then(res=>res.json())
+    .then(data=>{
 
-speechSynthesis.speak(speech)
+        sentenceBox.innerText = data.prediction
+
+    })
 
 }
+
+setInterval(captureFrame,700)
 
 
 function speakSentence(){
@@ -139,32 +117,6 @@ speech.lang="en-US"
 speechSynthesis.speak(speech)
 
 }
-
-
-function clearSentence(){
-
-fetch('/clear')
-
-lastWord=""
-
-}
-
-
-document.addEventListener("keydown",function(e){
-
-if(e.key==="s"){
-
-speakSentence()
-
-}
-
-if(e.key==="c"){
-
-clearSentence()
-
-}
-
-})
 
 </script>
 
